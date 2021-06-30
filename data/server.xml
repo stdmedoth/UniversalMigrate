@@ -1,5 +1,5 @@
 <server_conf>
-	<address>ip</address>
+	<address>localhost</address>
 	<username>user</username>
 	<password>pass</password>
 	<database>db</database>

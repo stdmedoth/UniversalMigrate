@@ -20,6 +20,10 @@ int check_migrate_exists(int migrate_id);
 
 int list_migrates();
 
+int check_base_tables();
+
+int conectar_mysql();
+
 #define APP_NAME "."
 #define APP_DIRNAME  APP_NAME "/data"
 #define SERVER_CONF      APP_DIRNAME "/server.xml"

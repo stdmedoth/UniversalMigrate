@@ -18,6 +18,56 @@
 #include <migrate.h>
 
 
+int check_base_tables(){
+	MYSQL_RES *result;
+	MYSQL_ROW row;
+	if(!server_confs.conectado){
+	    if(conectar_mysql()){
+			printf("Não foi possível conectar\n");
+			return 1;
+		}	
+  }
+
+  int query_len = 20, versao=0, migrate=0;
+  char query[query_len];
+  enum{
+  	CODE,
+  	DESCRICAO,
+  	ARQUIVO,
+  	VERSAO,
+  	LANCAMENTO
+  };
+
+  sprintf(query, "SHOW TABLES;");
+  if((mysql_query(&conectar,query))){
+  	printf("Não foi possível verificar tabelas\n");
+  	return 1;
+  }
+  if(!(result = mysql_store_result(&conectar))){
+		printf("Erro Mysql %s\n", mysql_error(&conectar));
+		return 1;
+	}
+	
+	while((row = mysql_fetch_row(result))){
+		if(!versao && !strcmp(row[0], "versao")){
+			versao = 1;
+		}
+		if(!migrate && !strcmp(row[0], "migrate")){
+			migrate = 1;
+		}
+	}
+
+	if(!versao || !migrate){
+		char *caminho_arquivo = malloc(strlen(MIGRATE_FOLDER) + 10 + 12 + 2);			
+		sprintf(caminho_arquivo, "%s/migrate_00.sql",MIGRATE_FOLDER);
+		if(rodar_migrate(caminho_arquivo)){
+			printf("Não foi possível executar migrate base\n");
+			return 1;
+		}	
+	}	
+	return 0;
+}
+
 xmlNodePtr get_tag_by_namepath(xmlDoc *doc, char *namepath){
   xmlXPathContextPtr contxt = xmlXPathNewContext(doc);
   xmlXPathObjectPtr node_contxt= xmlXPathEval((xmlChar*)namepath,contxt);
@@ -135,26 +185,26 @@ int remove_migrate(int migrate_id){
 	if(!server_confs.conectado){
 	    if(conectar_mysql()){
 			printf("Não foi possível conectar\n");
-			return -1;
+			return 1;
 		}	
-    }
+  }
 
-    int query_len = 12 + 50;
-    char query[query_len];
-    enum{
-    	CODE,
-    	DESCRICAO,
-    	ARQUIVO,
-    	VERSAO,
-    	LANCAMENTO
-    };
+  int query_len = 12 + 50;
+  char query[query_len];
+  enum{
+  	CODE,
+  	DESCRICAO,
+  	ARQUIVO,
+  	VERSAO,
+  	LANCAMENTO
+  };
 
-    sprintf(query, "SELECT * FROM migrate WHERE code = %i;", migrate_id);
-    if((mysql_query(&conectar,query))){
-    	printf("Não foi possível verificar migrate\n");
-    	return 1;
-    }
-    if(!(result = mysql_store_result(&conectar))){
+  sprintf(query, "SELECT * FROM migrate WHERE code = %i;", migrate_id);
+  if((mysql_query(&conectar,query))){
+  	printf("Não foi possível verificar migrate\n");
+  	return 1;
+  }
+  if(!(result = mysql_store_result(&conectar))){
 		printf("Erro Mysql %s\n", mysql_error(&conectar));
 		return 1;
 	}
@@ -183,25 +233,29 @@ int list_migrates(){
 			printf("Não foi possível conectar\n");
 			return 1;
 		}	
-    }
-    enum{
-    	CODE,
-    	DESCRICAO,
-    	ARQUIVO,
-    	VERSAO,
-    	LANCAMENTO
-    };
+  }
+  enum{
+  	CODE,
+  	DESCRICAO,
+  	ARQUIVO,
+  	VERSAO,
+  	LANCAMENTO
+  };
 
-    char query[50];
-    sprintf(query, "SELECT * FROM migrate;");
-    if((mysql_query(&conectar,query))){
-    	printf("Não foi possível listar migrate\n");
-    	printf("Erro Mysql %s\n", mysql_error(&conectar));
-    	return 1;
-    }
-    if(!(result = mysql_store_result(&conectar))){
-    	printf("Não foi possível listar migrate\n");
+  char query[50];
+  sprintf(query, "SELECT * FROM migrate;");
+  if((mysql_query(&conectar,query))){
+  	printf("Não foi possível listar migrate\n");
+  	printf("Erro Mysql %s\n", mysql_error(&conectar));
+  	return 1;
+  }
+  if(!(result = mysql_store_result(&conectar))){
+  	printf("Não foi possível listar migrate\n");
 		printf("Erro Mysql %s\n", mysql_error(&conectar));
+		return 1;
+	}
+	if(!mysql_num_rows(result)){
+		printf("Não há migrates carregados no server\n");
 		return 1;
 	}
 	while((row = mysql_fetch_row(result))){
@@ -342,14 +396,15 @@ int main(int argc, char **argv){
 		return 1;
 	}
 
-
+	if(check_base_tables())
+		return 1;
 
 	switch(option){
 		case 1: 
 
 			printf("Criando migrate...\n");
 			FILE *fp, *fp_down;
-			int numero = 1;
+			int numero = 0;
 			time_t t = time(NULL);
 			struct tm tm = *localtime(&t);
 			char *nome_arquivo_base = "migrate_0";
@@ -361,22 +416,19 @@ int main(int argc, char **argv){
 			char *caminho_arquivo = malloc(strlen(MIGRATE_FOLDER) + strlen(nome_arquivo) + 12 + 2);			
 			char *caminho_arquivo_down = malloc(strlen(MIGRATE_FOLDER) + strlen(nome_arquivo_down) + 12 + 2);			
   			
-			sprintf(nome_arquivo, "%s%i.sql", nome_arquivo_base, numero);
-			sprintf(caminho_arquivo, "%s/%s",MIGRATE_FOLDER, nome_arquivo);
-
-			sprintf(nome_arquivo_down, "%s%i.sql", nome_arquivo_basedown, numero);
-			sprintf(caminho_arquivo_down, "%s/%s",MIGRATE_FOLDER, nome_arquivo_down);
-			
-			while( fopen(caminho_arquivo, "r") ){
+			do{
+				
+				numero++;
 				printf("Arquivo %s já existente\n", nome_arquivo);
 				sprintf(nome_arquivo, "%s%i.sql", nome_arquivo_base, numero);
 				sprintf(caminho_arquivo, "%s/%s",MIGRATE_FOLDER, nome_arquivo);
 
 				sprintf(nome_arquivo_down, "%s%i.sql", nome_arquivo_basedown, numero);
 				sprintf(caminho_arquivo_down, "%s/%s",MIGRATE_FOLDER, nome_arquivo_down);
-				numero++;
-			}
-			numero--;
+				
+
+			}while( fopen(caminho_arquivo, "r") );
+			
 			printf("Gerando migrate %s...\n", nome_arquivo);
 			fp = fopen(caminho_arquivo, "w");
 			fp_down = fopen(caminho_arquivo_down, "w");
@@ -418,14 +470,21 @@ int main(int argc, char **argv){
 			   			i++;
 			   			continue;
 			   		}
-			   		if(!strcmp(namelist[i]->d_name,".")){
-			   			i++;
-			   			continue;
+			   		int ignore_files_pos=0;
+			   		char *ignore_files[] = {
+			   			".",
+			   			"..",
+			   			"empty_file",
+			   			NULL
+			   		};
+			   		while(ignore_files[ignore_files_pos]){
+				   		if(!strcmp(namelist[i]->d_name, ignore_files[ignore_files_pos])){
+				   			i++;
+				   			continue;
+				   		}	
+				   		ignore_files_pos++;
 			   		}
-			   		if(!strcmp(namelist[i]->d_name,"..")){
-			   			i++;
-			   			continue;
-			   		}
+			   		
 			   		const int path_len = strlen(MIGRATE_FOLDER) + 2 + strlen(namelist[i]->d_name);
 			   		char path[path_len];
 			   		printf("Atualizando %s\n", namelist[i]->d_name);
