@@ -1,0 +1,6 @@
+<server_conf>
+	<address>ip</address>
+	<username>user</username>
+	<password>pass</password>
+	<database>db</database>
+</server_conf>
