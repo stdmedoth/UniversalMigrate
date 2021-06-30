@@ -1,21 +1,7 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <dirent.h>
-#include <errno.h>
-#include <time.h>
-#include <libxml/xinclude.h>
-#include <libxml/xpath.h>
-#ifdef __linux__
-#include <mysql/mysql.h>
-#endif
-
-#ifdef WIN32
-#include <windows.h>
-#include <mysql/mysql.h>
-#endif
-
 #include <migrate.h>
+#include <options.h>
+#include <conf.h>
+#include <sql.h>
 
 
 int check_base_tables(){
@@ -66,117 +52,6 @@ int check_base_tables(){
 		}	
 	}	
 	return 0;
-}
-
-xmlNodePtr get_tag_by_namepath(xmlDoc *doc, char *namepath){
-	xmlXPathContextPtr contxt = xmlXPathNewContext(doc);
-	xmlXPathObjectPtr node_contxt= xmlXPathEval((xmlChar*)namepath,contxt);
-
-	xmlNodePtr node=NULL;
-	if(node_contxt &&
-		node_contxt->nodesetval &&
-		node_contxt->nodesetval->nodeNr &&
-		node_contxt->nodesetval->nodeTab){
-
-		node = node_contxt->nodesetval->nodeTab[0];
-}
-return node;
-}
-
-
-int conectar_mysql(){
-	if(!mysql_init(&conectar)){
-		printf("Não foi possível conectar\n");
-		return 1;
-	}
-	unsigned int timeout = 60 * 60 * 24;
-	int reconnect = 1;
-	mysql_options(&conectar, MYSQL_OPT_CONNECT_TIMEOUT, &timeout);
-	mysql_options(&conectar, MYSQL_OPT_RECONNECT, &reconnect);
-
-	if(!mysql_real_connect(&conectar, server_confs.server_endereco, server_confs.server_user, server_confs.server_senha, server_confs.server_database, 0,NULL,0)){
-		printf("Não foi possível conectar ao servidor\n");
-		return 1;
-	}
-
-	char *character = strdup("utf8");
-	char *msg = malloc(strlen(character) + 200);
-	sprintf(msg, "setando caracete %s", character);
-	if (mysql_set_character_set(&conectar, character)){
-		printf("Não foi possível setar characteres UTF8\n");
-	}
-	server_confs.conectado = 1;
-
-	return 0;
-}
-
-
-int rec_vars_from_file(){
-
-	xmlDocPtr doc = xmlParseFile(SERVER_CONF);
-
-	if(!doc){
-		printf("Não foi possível ler arquivo de configuração");
-		return 1;
-	}
-
-	xmlNodePtr endereco_tag = get_tag_by_namepath(doc,"/server_conf/address");
-	xmlNodePtr user_tag = get_tag_by_namepath(doc,"/server_conf/username");
-	xmlNodePtr senha_tag = get_tag_by_namepath(doc,"/server_conf/password");
-	xmlNodePtr database_tag = get_tag_by_namepath(doc,"/server_conf/database");
-
-	if(!endereco_tag || !xmlNodeGetContent(endereco_tag)){
-		printf("Não foi possível receber endereço do server\n");
-		return 1;
-	}
-	if(!user_tag || !xmlNodeGetContent(user_tag)){
-		printf("Não foi possível receber usuario do server\n");
-		return 1;
-	}
-	if(!senha_tag || !xmlNodeGetContent(senha_tag)){
-		printf("Não foi possível receber senha do server\n");
-		return 1;
-	}
-	if(!database_tag || !xmlNodeGetContent(database_tag)){
-		printf("Não foi possível receber banco de dados do server\n");
-		return 1;
-	}
-
-	server_confs.server_endereco = strdup((char*)xmlNodeGetContent(endereco_tag));
-	server_confs.server_user = strdup((char*)xmlNodeGetContent(user_tag));
-	server_confs.server_senha = strdup((char*)xmlNodeGetContent(senha_tag));
-	server_confs.server_database = strdup((char*)xmlNodeGetContent(database_tag));
-	return 0;
-}
-
-
-int get_options(char *option){
-	int pos=0;
-	char *options [] = {
-		"empty",
-		"new",
-		"update",
-		"remove",
-		"reset",
-		"list",
-		0
-	};
-	while(options[pos]){
-		if(!strcmp(option,options[pos])){
-			return pos;
-		}
-		pos++;
-	}
-	return 0; 
-}
-
-void help_message(){
-	printf("Opção desconhecida, lista:\n");
-	printf(" - new\n");
-	printf(" - update\n");
-	printf(" - remove id_migrate\n");
-	printf(" - reset\n");
-	printf(" - list\n");
 }
 
 int remove_migrate(int migrate_id){

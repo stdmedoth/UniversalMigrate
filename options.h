@@ -1,3 +1,7 @@
+#ifndef __U_M_OPTIONS__
+
+#define __U_M_OPTIONS__
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,11 +19,8 @@
 #include <mysql/mysql.h>
 #endif
 
-int rodar_migrate(char *migrate_path);
+void help_message();
 
-int check_migrate_exists(int migrate_id);
+int get_options(char *option);
 
-int list_migrates();
-
-int check_base_tables();
-
+#endif

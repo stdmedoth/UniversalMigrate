@@ -1,3 +1,8 @@
+#ifndef __U_M_SQL__
+
+#define __U_M_SQL__
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,11 +20,10 @@
 #include <mysql/mysql.h>
 #endif
 
-int rodar_migrate(char *migrate_path);
+#include <conf.h>
 
-int check_migrate_exists(int migrate_id);
+static MYSQL conectar;
 
-int list_migrates();
+int conectar_mysql();
 
-int check_base_tables();
-
+#endif

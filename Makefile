@@ -7,7 +7,7 @@ CCFLAGS3=-Wunused-variable
 
 ALLFLAGS=$(BDFLAGS) $(XMLFLAGS) $(CCFLAGS1) $(CCFLAGS2) $(CCFLAGS3)
 
-OBJS=migrate.o
+OBJS=migrate.o options.o conf.o sql.o
 TARGET_FILE=migrate.c
 RESULT_FILE=migrate
 
@@ -15,7 +15,16 @@ all: $(OBJS)
 	$(CC) $(OBJS) -o $(RESULT_FILE) $(ALLFLAGS)
 
 migrate.o:
-	$(CC) $(TARGET_FILE) -c  $(ALLFLAGS) -I .
+	$(CC) migrate.c -c  $(ALLFLAGS) -I .
+
+options.o:
+	$(CC) options.c -c  $(ALLFLAGS) -I .
+
+conf.o:
+	$(CC) conf.c -c  $(ALLFLAGS) -I .
+
+sql.o:
+	$(CC) sql.c -c  $(ALLFLAGS) -I .
 
 clear:
 	rm *.o *.gcda $(RESULT_FILE)
