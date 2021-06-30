@@ -174,7 +174,7 @@ void help_message(){
 	printf("Opção desconhecida, lista:\n");
 	printf(" - new\n");
 	printf(" - update\n");
-	printf(" - remove arquivo_migrate\n");
+	printf(" - remove id_migrate\n");
 	printf(" - reset\n");
 	printf(" - list\n");
 }
@@ -416,9 +416,12 @@ int main(int argc, char **argv){
 		char *caminho_arquivo = malloc(strlen(MIGRATE_FOLDER) + strlen(nome_arquivo) + 12 + 2);			
 		char *caminho_arquivo_down = malloc(strlen(MIGRATE_FOLDER) + strlen(nome_arquivo_down) + 12 + 2);			
 
-		do{
+		sprintf(nome_arquivo, "%s%i.sql", nome_arquivo_base, numero);
+		sprintf(caminho_arquivo, "%s/%s",MIGRATE_FOLDER, nome_arquivo);
 
+		while( fopen(caminho_arquivo, "r") ){
 			numero++;
+			
 			printf("Arquivo %s já existente\n", nome_arquivo);
 			sprintf(nome_arquivo, "%s%i.sql", nome_arquivo_base, numero);
 			sprintf(caminho_arquivo, "%s/%s",MIGRATE_FOLDER, nome_arquivo);
@@ -426,8 +429,7 @@ int main(int argc, char **argv){
 			sprintf(nome_arquivo_down, "%s%i.sql", nome_arquivo_basedown, numero);
 			sprintf(caminho_arquivo_down, "%s/%s",MIGRATE_FOLDER, nome_arquivo_down);
 
-
-		}while( fopen(caminho_arquivo, "r") );
+		}
 
 		printf("Gerando migrate %s...\n", nome_arquivo);
 		fp = fopen(caminho_arquivo, "w");
@@ -474,7 +476,6 @@ int main(int argc, char **argv){
 				char *ignore_files[] = {
 					".",
 					"..",
-					"empty_file",
 					NULL
 				};
 				while(ignore_files[ignore_files_pos]){
