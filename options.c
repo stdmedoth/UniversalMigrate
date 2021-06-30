@@ -9,6 +9,7 @@ int get_options(char *option){
 		"remove",
 		"reset",
 		"list",
+		"version",
 		0
 	};
 	while(options[pos]){
@@ -27,4 +28,5 @@ void help_message(){
 	printf(" - remove id_migrate\n");
 	printf(" - reset\n");
 	printf(" - list\n");
+	printf(" - version\n");
 }

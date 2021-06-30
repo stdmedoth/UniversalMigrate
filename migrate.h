@@ -15,11 +15,12 @@
 #include <mysql/mysql.h>
 #endif
 
-int rodar_migrate(char *migrate_path);
+int rodar_migrate(char *migrate_path, server_confs *server_conf);
 
-int check_migrate_exists(int migrate_id);
+int check_migrate_exists(int migrate_id, server_confs *server_conf);
 
 int list_migrates();
 
 int check_base_tables();
 
+static server_confs *server_conf;

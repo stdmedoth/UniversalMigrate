@@ -1,14 +1,44 @@
-#include <migrate.h>
 #include <options.h>
 #include <conf.h>
 #include <sql.h>
+#include <migrate.h>
 
-
-int check_base_tables(){
+char *get_version(server_confs *server_conf){
 	MYSQL_RES *result;
 	MYSQL_ROW row;
-	if(!server_confs.conectado){
-		if(conectar_mysql()){
+
+	if(!server_conf->conectado){
+		if(conectar_mysql(server_conf)){
+			printf("Não foi possível conectar\n");
+			return NULL;
+		}	
+	}
+	char query[50];
+	sprintf(query, "SELECT versao FROM versao;");
+	if((mysql_query(&server_conf->conectar,query))){
+		printf("Não foi possível buscar versão\n");
+		printf("Erro Mysql %s\n", mysql_error(&server_conf->conectar));
+		return NULL;
+	}
+	if(!(result = mysql_store_result(&server_conf->conectar))){
+		printf("Não foi possível buscar versao\n");
+		printf("Erro Mysql %s\n", mysql_error(&server_conf->conectar));
+		return NULL;
+	}
+	if(!(row = mysql_fetch_row(result))){
+		printf("Versão não carregada no servidor\n");
+		return NULL;
+	}
+
+	return row[0];
+}
+
+
+int check_base_tables(server_confs *server_conf){
+	MYSQL_RES *result;
+	MYSQL_ROW row;
+	if(!server_conf->conectado){
+		if(conectar_mysql(server_conf)){
 			printf("Não foi possível conectar\n");
 			return 1;
 		}	
@@ -25,12 +55,12 @@ int check_base_tables(){
 	};
 
 	sprintf(query, "SHOW TABLES;");
-	if((mysql_query(&conectar,query))){
+	if((mysql_query(&server_conf->conectar,query))){
 		printf("Não foi possível verificar tabelas\n");
 		return 1;
 	}
-	if(!(result = mysql_store_result(&conectar))){
-		printf("Erro Mysql %s\n", mysql_error(&conectar));
+	if(!(result = mysql_store_result(&server_conf->conectar))){
+		printf("Erro Mysql %s\n", mysql_error(&server_conf->conectar));
 		return 1;
 	}
 	
@@ -46,7 +76,7 @@ int check_base_tables(){
 	if(!versao || !migrate){
 		char *caminho_arquivo = malloc(strlen(MIGRATE_FOLDER) + 10 + 12 + 2);			
 		sprintf(caminho_arquivo, "%s/migrate_00.sql",MIGRATE_FOLDER);
-		if(rodar_migrate(caminho_arquivo)){
+		if(rodar_migrate(caminho_arquivo, server_conf)){
 			printf("Não foi possível executar migrate base\n");
 			return 1;
 		}	
@@ -54,11 +84,11 @@ int check_base_tables(){
 	return 0;
 }
 
-int remove_migrate(int migrate_id){
+int remove_migrate(int migrate_id, server_confs *server_conf){
 	MYSQL_RES *result;
 	MYSQL_ROW row;
-	if(!server_confs.conectado){
-		if(conectar_mysql()){
+	if(!server_conf->conectado){
+		if(conectar_mysql(server_conf)){
 			printf("Não foi possível conectar\n");
 			return 1;
 		}	
@@ -75,12 +105,12 @@ int remove_migrate(int migrate_id){
 	};
 
 	sprintf(query, "SELECT * FROM migrate WHERE code = %i;", migrate_id);
-	if((mysql_query(&conectar,query))){
+	if((mysql_query(&server_conf->conectar,query))){
 		printf("Não foi possível verificar migrate\n");
 		return 1;
 	}
-	if(!(result = mysql_store_result(&conectar))){
-		printf("Erro Mysql %s\n", mysql_error(&conectar));
+	if(!(result = mysql_store_result(&server_conf->conectar))){
+		printf("Erro Mysql %s\n", mysql_error(&server_conf->conectar));
 		return 1;
 	}
 	if(!(row = mysql_fetch_row(result))){
@@ -88,11 +118,11 @@ int remove_migrate(int migrate_id){
 		return 1;	
 	}
 	
-	const int path_len = strlen(MIGRATE_FOLDER) + 2 + 12;
+	const int path_len = strlen(MIGRATE_FOLDER) + 2 + 20;
 	char path[path_len];
 	printf("Atualizando %s\n", row[DESCRICAO]);
 	sprintf(path, "%s/migrate_down_0%i.sql", MIGRATE_FOLDER, migrate_id);
-	if(rodar_migrate(path)){
+	if(rodar_migrate(path, server_conf)){
 		printf("Não foi possível rodar down do migrate %s\n", row[ARQUIVO]);
 		return 1;
 	}
@@ -100,11 +130,11 @@ int remove_migrate(int migrate_id){
 	return 0;
 }
 
-int list_migrates(){
+int list_migrates(server_confs *server_conf){
 	MYSQL_RES *result;
 	MYSQL_ROW row;
-	if(!server_confs.conectado){
-		if(conectar_mysql()){
+	if(!server_conf->conectado){
+		if(conectar_mysql(server_conf)){
 			printf("Não foi possível conectar\n");
 			return 1;
 		}	
@@ -119,14 +149,14 @@ int list_migrates(){
 
 	char query[50];
 	sprintf(query, "SELECT * FROM migrate;");
-	if((mysql_query(&conectar,query))){
+	if((mysql_query(&server_conf->conectar,query))){
 		printf("Não foi possível listar migrate\n");
-		printf("Erro Mysql %s\n", mysql_error(&conectar));
+		printf("Erro Mysql %s\n", mysql_error(&server_conf->conectar));
 		return 1;
 	}
-	if(!(result = mysql_store_result(&conectar))){
+	if(!(result = mysql_store_result(&server_conf->conectar))){
 		printf("Não foi possível listar migrate\n");
-		printf("Erro Mysql %s\n", mysql_error(&conectar));
+		printf("Erro Mysql %s\n", mysql_error(&server_conf->conectar));
 		return 1;
 	}
 	if(!mysql_num_rows(result)){
@@ -145,12 +175,12 @@ int list_migrates(){
 	return 0;
 }
 
-int reset_migrates(){
+int reset_migrates(server_confs *server_conf){
 
 	MYSQL_RES *result;
 	MYSQL_ROW row;
-	if(!server_confs.conectado){
-		if(conectar_mysql()){
+	if(!server_conf->conectado){
+		if(conectar_mysql(server_conf)){
 			printf("Não foi possível conectar\n");
 			return 1;
 		}	
@@ -165,29 +195,29 @@ int reset_migrates(){
 
 	char query[50];
 	sprintf(query, "SELECT * FROM migrate order by lancamento asc;");
-	if((mysql_query(&conectar,query))){
+	if((mysql_query(&server_conf->conectar,query))){
 		printf("Não foi possível listar migrate\n");
-		printf("Erro Mysql %s\n", mysql_error(&conectar));
+		printf("Erro Mysql %s\n", mysql_error(&server_conf->conectar));
 		return 1;
 	}
-	if(!(result = mysql_store_result(&conectar))){
+	if(!(result = mysql_store_result(&server_conf->conectar))){
 		printf("Não foi possível listar migrate\n");
-		printf("Erro Mysql %s\n", mysql_error(&conectar));
+		printf("Erro Mysql %s\n", mysql_error(&server_conf->conectar));
 		return 1;
 	}
 	
 	while((row = mysql_fetch_row(result))){
-		if(remove_migrate(atoi(row[CODE])))
+		if(remove_migrate(atoi(row[CODE]), server_conf))
 			return 1;
 	}
 	return 0;
 }
 
-int check_migrate_exists(int migrate_id){
+int check_migrate_exists(int migrate_id, server_confs *server_conf){
 	MYSQL_RES *result;
 	MYSQL_ROW row;
-	if(!server_confs.conectado){
-		if(conectar_mysql()){
+	if(!server_conf->conectado){
+		if(conectar_mysql(server_conf)){
 			printf("Não foi possível conectar\n");
 			return -1;
 		}	
@@ -196,12 +226,12 @@ int check_migrate_exists(int migrate_id){
 	int query_len = 12 + 50;
 	char query[query_len];
 	sprintf(query, "SELECT * FROM migrate WHERE code = %i;", migrate_id);
-	if((mysql_query(&conectar,query))){
+	if((mysql_query(&server_conf->conectar,query))){
 		printf("Não foi possível verificar migrate\n");
 		return -1;
 	}
-	if(!(result = mysql_store_result(&conectar))){
-		printf("Erro Mysql %s\n", mysql_error(&conectar));
+	if(!(result = mysql_store_result(&server_conf->conectar))){
+		printf("Erro Mysql %s\n", mysql_error(&server_conf->conectar));
 		return -1;
 	}
 	if((row = mysql_fetch_row(result)))
@@ -210,15 +240,15 @@ int check_migrate_exists(int migrate_id){
 	return 0;
 }
 
-int rodar_migrate(char *migrate_path){
+int rodar_migrate(char *migrate_path, server_confs *server_conf){
 
 	FILE *fp;
 	char * line = NULL;
 	size_t len = 0;
 	ssize_t read;
 	int line_pos = 0;
-	if(!server_confs.conectado){
-		if(conectar_mysql()){
+	if(!server_conf->conectado){
+		if(conectar_mysql(server_conf)){
 			printf("Não foi possível conectar\n");
 			return 1;
 		}	
@@ -231,23 +261,23 @@ int rodar_migrate(char *migrate_path){
 	}
 
 	while ((read = getline(&line, &len, fp)) != -1) {
-		if((mysql_query(&conectar,line))){
-			int error_code = mysql_errno(&conectar);
+		if((mysql_query(&server_conf->conectar,line))){
+			int error_code = mysql_errno(&server_conf->conectar);
 			switch(error_code){
 				case 1050: 
-				printf("Aviso: %s\n", mysql_error(&conectar));
+				printf("Aviso: %s\n", mysql_error(&server_conf->conectar));
 				break;
 				case 1062: 
-				printf("Aviso: %s\n", mysql_error(&conectar));
+				printf("Aviso: %s\n", mysql_error(&server_conf->conectar));
 				break;
 				case 1065: 
 	    			//empty query
 				break;
 				case 1060:
-				printf("Aviso: %s\n", mysql_error(&conectar));
+				printf("Aviso: %s\n", mysql_error(&server_conf->conectar));
 				break;
 				default:
-				printf("Erro Mysql %i na linha %i %s\n", error_code, line_pos, mysql_error(&conectar));
+				printf("Erro Mysql %i na linha %i %s\n", error_code, line_pos, mysql_error(&server_conf->conectar));
 				printf("%s\n", line);
 				return 1;	
 			}
@@ -265,13 +295,15 @@ int main(int argc, char **argv){
 		help_message();
 		return 1;
 	}
+	
+	server_conf = malloc(sizeof(server_confs));
 	int option = get_options(argv[1]);
-	if(rec_vars_from_file()){
+	if(rec_vars_from_file(server_conf)){
 		printf("Não foi possível receber informações de configuração\n");
 		return 1;
 	}
 
-	if(check_base_tables())
+	if(check_base_tables(server_conf))
 		return 1;
 
 	switch(option){
@@ -370,13 +402,13 @@ int main(int argc, char **argv){
 					printf("Arquivo migrate %s não identificado\n", namelist[i]->d_name);
 					return 1;
 				}
-				int migrate_exists = check_migrate_exists(migrate_id);
+				int migrate_exists = check_migrate_exists(migrate_id, server_conf);
 				if(migrate_exists == -1){
 					printf("Erro ao verificar migrate");
 					return 1;
 				}
 				if(!migrate_exists){
-					if(rodar_migrate(path))
+					if(rodar_migrate(path, server_conf))
 						return 1;	
 				}else{
 					printf("Migrate %s já atualizado!\n", namelist[i]->d_name);
@@ -396,17 +428,25 @@ int main(int argc, char **argv){
 			return 1;
 		}
 		int migrate = atoi(argv[2]);
-		if(remove_migrate(migrate))
+		if(remove_migrate(migrate, server_conf))
 			return 1;
 		printf("Migrate %i removido\n", migrate);
 		break;		
 		case 4: 
 		printf("Resetando migrates...\n");			
-		reset_migrates();
+		reset_migrates(server_conf);
 		break;
 		case 5: 
 		printf("Listagem de migrates...\n");			
-		list_migrates();
+		list_migrates(server_conf);
+		break;
+		case 6:
+		printf("Buscando versão...\n");
+		char *versao = get_version(server_conf);
+		if(!versao)
+			return 1;
+
+		printf("Versão app: %s\n", versao);
 		break;
 		default:
 		help_message();

@@ -2,8 +2,8 @@ CC=gcc
 XMLFLAGS=`pkg-config --libs --cflags  libxml-2.0`
 BDFLAGS=-I /usr/include/mysql -l mysqlclient
 CCFLAGS1=-Wall -Wredundant-decls -Wuninitialized -Wreturn-type
-CCFLAGS2=-Wpedantic -O0 -Woverflow -Wno-write-strings -Wfatal-errors -Wformat-overflow  
-CCFLAGS3=-Wunused-variable 
+CCFLAGS2=-Wpedantic -O4 -Woverflow -Wfatal-errors -Wformat-overflow  
+CCFLAGS3=-Wunused-variable -g
 
 ALLFLAGS=$(BDFLAGS) $(XMLFLAGS) $(CCFLAGS1) $(CCFLAGS2) $(CCFLAGS3)
 
@@ -27,4 +27,5 @@ sql.o:
 	$(CC) sql.c -c  $(ALLFLAGS) -I .
 
 clear:
-	rm *.o *.gcda $(RESULT_FILE)
+	rm *.o $(RESULT_FILE)
+
