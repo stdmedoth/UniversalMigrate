@@ -1,8 +1,3 @@
-#ifndef __U_M_SQL__
-
-#define __U_M_SQL__
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -20,10 +15,6 @@
 #include <mysql/mysql.h>
 #endif
 
-#include <conf.h>
+typedef struct _server_confs server_confs;
 
-static MYSQL conectar;
-
-int conectar_mysql();
-
-#endif
+int conectar_mysql(server_confs *server_conf);

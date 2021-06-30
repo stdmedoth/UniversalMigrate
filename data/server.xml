@@ -1,6 +1,6 @@
 <server_conf>
 	<address>localhost</address>
-	<username>user</username>
-	<password>pass</password>
-	<database>db</database>
+	<username>calistu</username>
+	<password>bash9835</password>
+	<database>contas</database>
 </server_conf>

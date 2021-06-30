@@ -1,6 +1,3 @@
-#ifndef __U_M_CONF__
-
-#define __U_M_CONF__
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -20,17 +17,17 @@
 
 #include <paths.h>
 
-static struct _server_confs{
+typedef struct _server_confs{
   char *server_endereco;
   char *server_user;
   char *server_senha;
   char *server_database;
   int conectado;
+  MYSQL conectar;
 }server_confs;
 
-
-int rec_vars_from_file();
+int rec_vars_from_file(server_confs *server_conf);
 
 xmlNodePtr get_tag_by_namepath(xmlDoc *doc, char *namepath);
 
-#endif
+char *get_version(server_confs *server_conf);

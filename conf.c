@@ -1,11 +1,11 @@
 #include <conf.h>
 
-int rec_vars_from_file(){
+int rec_vars_from_file(server_confs *server_conf){
 
 	xmlDocPtr doc = xmlParseFile(SERVER_CONF);
 
 	if(!doc){
-		printf("Não foi possível ler arquivo de configuração");
+		printf("Não foi possível ler arquivo de configuração\n");
 		return 1;
 	}
 
@@ -31,10 +31,11 @@ int rec_vars_from_file(){
 		return 1;
 	}
 
-	server_confs.server_endereco = strdup((char*)xmlNodeGetContent(endereco_tag));
-	server_confs.server_user = strdup((char*)xmlNodeGetContent(user_tag));
-	server_confs.server_senha = strdup((char*)xmlNodeGetContent(senha_tag));
-	server_confs.server_database = strdup((char*)xmlNodeGetContent(database_tag));
+	server_conf->server_endereco = strdup((char*)xmlNodeGetContent(endereco_tag));
+	server_conf->server_user = strdup((char*)xmlNodeGetContent(user_tag));
+	server_conf->server_senha = strdup((char*)xmlNodeGetContent(senha_tag));
+	server_conf->server_database = strdup((char*)xmlNodeGetContent(database_tag));
+	
 	return 0;
 }
 

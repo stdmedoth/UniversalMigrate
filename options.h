@@ -1,7 +1,3 @@
-#ifndef __U_M_OPTIONS__
-
-#define __U_M_OPTIONS__
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -22,5 +18,3 @@
 void help_message();
 
 int get_options(char *option);
-
-#endif
