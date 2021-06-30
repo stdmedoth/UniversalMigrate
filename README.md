@@ -31,7 +31,9 @@ Installation
 
 * `make` for the Makefile compilation
 * `mysqlclient` for the mysql connector 
-* `libxml` for the configuration reader 
+* `libxml` for the configuration reader
+
+> run make command on your terminal 
 
 
 Calisto – jovictor210@gmail.com
