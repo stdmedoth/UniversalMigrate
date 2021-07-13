@@ -24,3 +24,5 @@ int list_migrates();
 int check_base_tables();
 
 static server_confs *server_conf;
+
+void set_is_verbose(int argc, char **argv, server_confs *server_conf);

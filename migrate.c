@@ -3,6 +3,15 @@
 #include <sql.h>
 #include <migrate.h>
 
+
+void set_is_verbose(int argc, char **argv, server_confs *server_conf){
+	for(int cont=0;cont<argc; cont++){
+		if(!strcmp(argv[cont], "--verbose")){
+			server_conf->verbose = 1;
+		}
+	}
+}
+
 char *get_version(server_confs *server_conf){
 	MYSQL_RES *result;
 	MYSQL_ROW row;
@@ -243,10 +252,7 @@ int check_migrate_exists(int migrate_id, server_confs *server_conf){
 int rodar_migrate(char *migrate_path, server_confs *server_conf){
 
 	FILE *fp;
-	char * line = NULL;
-	size_t len = 0;
-	ssize_t read;
-	int line_pos = 0;
+
 	if(!server_conf->conectado){
 		if(conectar_mysql(server_conf)){
 			printf("Não foi possível conectar\n");
@@ -260,7 +266,61 @@ int rodar_migrate(char *migrate_path, server_confs *server_conf){
 		return 1;
 	}
 
-	while ((read = getline(&line, &len, fp)) != -1) {
+	int line_pos = 0;
+	while(1) {
+		char line[2048];
+		int pos = -1;
+		char ascii;
+		int comment_flag[2], iscomment = 0;
+		
+		comment_flag[0] = 0;
+		comment_flag[1] = 0;
+
+		do{
+			pos++;
+			ascii = fgetc(fp);
+			line[pos] = ascii;
+
+			switch(line[pos]){
+				case '-': 
+				if(comment_flag[0] == 1){
+					comment_flag[1] = 1;
+				}
+				comment_flag[0] = 1;
+				break;
+				case ' ':
+				if(comment_flag[0] == 1 && comment_flag[1] == 1){
+					iscomment = 1;
+					break;
+				}
+
+				default:
+				comment_flag[0] = 0;
+				comment_flag[0] = 0;
+				iscomment = 0;
+				break;
+			}		
+			
+
+			if(line[pos] == EOF){
+				break;
+			}
+		}
+		while( line[pos] != ';' );
+
+		if(line[pos] == EOF){
+			break;
+		}
+
+		pos++;
+		line[pos] = '\0';
+		if(iscomment){
+			continue;
+		}
+
+		if(server_conf->verbose){
+			printf("%s\n", line);	
+		}
 		if((mysql_query(&server_conf->conectar,line))){
 			int error_code = mysql_errno(&server_conf->conectar);
 			switch(error_code){
@@ -271,6 +331,7 @@ int rodar_migrate(char *migrate_path, server_confs *server_conf){
 				printf("Aviso: %s\n", mysql_error(&server_conf->conectar));
 				break;
 				case 1065: 
+				printf("Aviso: %s\n", mysql_error(&server_conf->conectar));
 	    			//empty query
 				break;
 				case 1060:
@@ -280,10 +341,9 @@ int rodar_migrate(char *migrate_path, server_confs *server_conf){
 				printf("Erro Mysql %i na linha %i %s\n", error_code, line_pos, mysql_error(&server_conf->conectar));
 				printf("%s\n", line);
 				return 1;	
-			}
-
-			
+			}			
 		}
+
 		line_pos++;
 	}
 
@@ -305,6 +365,8 @@ int main(int argc, char **argv){
 
 	if(check_base_tables(server_conf))
 		return 1;
+
+	set_is_verbose(argc, argv, server_conf);
 
 	switch(option){
 		case 1: 

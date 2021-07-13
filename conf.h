@@ -23,6 +23,7 @@ typedef struct _server_confs{
   char *server_senha;
   char *server_database;
   int conectado;
+  int verbose;
   MYSQL conectar;
 }server_confs;
 

@@ -12,6 +12,7 @@ int get_options(char *option){
 		"version",
 		0
 	};
+
 	while(options[pos]){
 		if(!strcmp(option,options[pos])){
 			return pos;
@@ -22,6 +23,7 @@ int get_options(char *option){
 }
 
 void help_message(){
+	printf("./migrate <opcao> [--verbose]:\n");
 	printf("Opção desconhecida, lista:\n");
 	printf(" - new\n");
 	printf(" - update\n");
